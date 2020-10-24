@@ -1,0 +1,92 @@
+.nav-item {
+    .hover{
+        transition: $animate;
+        position: relative;
+        &:before,
+        &:after {
+          content: "";
+          position: absolute;
+          bottom: 0px;
+          width: 0px;
+          height: 2px;
+          transition: $animate;
+          transition-duration: 0.75s;
+          opacity: 0;
+          background-color: darken($primary,5%);
+        }
+        &.hover-1 {
+          &:before,
+          &:after {
+            left: 0;
+          }
+        }
+    }
+    &:hover {
+        cursor: pointer;
+        .hover {
+          &:before,
+          &:after {
+            width: 100%;
+            opacity: 1;
+          }
+          &.hover-3,
+          &.hover-4 {
+            &:before,
+            &:after {
+              width: 50%;
+            }
+          }
+        }
+      }
+
+}
+    .example {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      margin: 0 0 45px;
+      .hover {
+        font-size: 36px;
+        text-align: center;
+        margin: 0 auto;
+        padding: 0;
+        transition: $animate;
+        position: relative;
+        &:before,
+        &:after {
+          content: "";
+          position: absolute;
+          bottom: -10px;
+          width: 0px;
+          height: 5px;
+          margin: 5px 0 0;
+          transition: $animate;
+          transition-duration: 0.75s;
+          opacity: 0;
+          background-color: darken(orange,5%);
+        }
+        &.hover-1 {
+          &:before,
+          &:after {
+            left: 0;
+          }
+        }
+      }
+      &:hover {
+        cursor: pointer;
+        .hover {
+          &:before,
+          &:after {
+            width: 100%;
+            opacity: 1;
+          }
+          &.hover-3,
+          &.hover-4 {
+            &:before,
+            &:after {
+              width: 50%;
+            }
+          }
+        }
+      }
+    }

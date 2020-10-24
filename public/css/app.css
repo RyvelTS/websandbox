@@ -10906,6 +10906,10 @@ a.text-dark:focus {
 
 /** Hover-related CSS **/
 
+body {
+  font-family: "Montserrat", sans-serif;
+}
+
 .nav-item .hover {
   transition: all 0.2s ease-in-out;
   position: relative;
@@ -10996,9 +11000,5 @@ a.text-dark:focus {
 .example:hover .hover.hover-4:before,
 .example:hover .hover.hover-4:after {
   width: 50%;
-}
-
-body {
-  font-family: "Montserrat", sans-serif;
 }
 
