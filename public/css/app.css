@@ -1,4 +1,6 @@
-@import url(https://fonts.googleapis.com/css?family=Nunito);@charset "UTF-8";
+@import url(https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;
+
+0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap);@charset "UTF-8";
 
 /*!
  * Bootstrap v4.5.3 (https://getbootstrap.com/)
@@ -6,7 +8,6 @@
  * Copyright 2011-2020 Twitter, Inc.
  * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
  */
-
 :root {
   --blue: #3490dc;
   --indigo: #6574cd;
@@ -34,7 +35,7 @@
   --breakpoint-md: 768px;
   --breakpoint-lg: 992px;
   --breakpoint-xl: 1200px;
-  --font-family-sans-serif: "Nunito", sans-serif;
+  --font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
@@ -66,7 +67,7 @@ section {
 
 body {
   margin: 0;
-  font-family: "Nunito", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   font-size: 0.9rem;
   font-weight: 400;
   line-height: 1.6;
@@ -6374,7 +6375,7 @@ a.close.disabled {
   z-index: 1070;
   display: block;
   margin: 0;
-  font-family: "Nunito", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   font-style: normal;
   font-weight: 400;
   line-height: 1.6;
@@ -6499,7 +6500,7 @@ a.close.disabled {
   z-index: 1060;
   display: block;
   max-width: 276px;
-  font-family: "Nunito", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   font-style: normal;
   font-weight: 400;
   line-height: 1.6;
@@ -10901,5 +10902,103 @@ a.text-dark:focus {
     color: inherit;
     border-color: #dee2e6;
   }
+}
+
+/** Hover-related CSS **/
+
+.nav-item .hover {
+  transition: all 0.2s ease-in-out;
+  position: relative;
+}
+
+.nav-item .hover:before,
+.nav-item .hover:after {
+  content: "";
+  position: absolute;
+  bottom: 0px;
+  width: 0px;
+  height: 2px;
+  transition: all 0.2s ease-in-out;
+  transition-duration: 0.75s;
+  opacity: 0;
+  background-color: #df2844;
+}
+
+.nav-item .hover.hover-1:before,
+.nav-item .hover.hover-1:after {
+  left: 0;
+}
+
+.nav-item:hover {
+  cursor: pointer;
+}
+
+.nav-item:hover .hover:before,
+.nav-item:hover .hover:after {
+  width: 100%;
+  opacity: 1;
+}
+
+.nav-item:hover .hover.hover-3:before,
+.nav-item:hover .hover.hover-3:after,
+.nav-item:hover .hover.hover-4:before,
+.nav-item:hover .hover.hover-4:after {
+  width: 50%;
+}
+
+.example {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  margin: 0 0 45px;
+}
+
+.example .hover {
+  font-size: 36px;
+  text-align: center;
+  margin: 0 auto;
+  padding: 0;
+  transition: all 0.2s ease-in-out;
+  position: relative;
+}
+
+.example .hover:before,
+.example .hover:after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  width: 0px;
+  height: 5px;
+  margin: 5px 0 0;
+  transition: all 0.2s ease-in-out;
+  transition-duration: 0.75s;
+  opacity: 0;
+  background-color: #e69500;
+}
+
+.example .hover.hover-1:before,
+.example .hover.hover-1:after {
+  left: 0;
+}
+
+.example:hover {
+  cursor: pointer;
+}
+
+.example:hover .hover:before,
+.example:hover .hover:after {
+  width: 100%;
+  opacity: 1;
+}
+
+.example:hover .hover.hover-3:before,
+.example:hover .hover.hover-3:after,
+.example:hover .hover.hover-4:before,
+.example:hover .hover.hover-4:after {
+  width: 50%;
+}
+
+body {
+  font-family: "Montserrat", sans-serif;
 }
 
