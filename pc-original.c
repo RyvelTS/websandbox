@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <semaphore.h>
 #define NUM 5  
-int queue[NUM];   //array ,circular buffer
+int queue[NUM]; //array ,circular buffer
 sem_t blank_number, product_number; //blank count, product count
 
 //thread for producer 
