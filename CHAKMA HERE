@@ -60,4 +60,5 @@ int main(int argc, char *argv[])
 
 
 ------------------------
-compile: gcc pc.c -o pc /lpthread
+compile: gcc pc.c -o pc -lpthread
+run: ./pc
