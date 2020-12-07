@@ -1,6 +1,6 @@
 Install Visual studio Code
 https://code.visualstudio.com/docs/setup/linux
-
+-------------------------------------------------------
 PC.C
 #include <stdlib.h>
 #include <unistd.h>
@@ -56,15 +56,10 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-
-
-
-------------------------
+-------------------------------------------------------
 compile: gcc pc.c -o pc -lpthread
 run: ./pc
-
-
-
+-------------------------------------------------------
 MODIFIED:
 
 #include <stdlib.h>
@@ -118,3 +113,1341 @@ int main(int argc, char *argv[]){
   sem_destroy(&product_number);
   return 0;
 }
+
+
+---------------------------------------------------------------------------------------------------------
+LAB B 
+
+---------------------------------------------------------------------------------------------------------
+
+ORIGINAL CODE:
+
+//Basic method used for Continuous memory allocation
+
+//allocate freeMemSize(constant) Bytes in memory, use this memory
+//region as the virtual machine memory; 
+
+//Use two link list to store the free memory block and the allocated
+//memory block
+
+//every time when a process need allocate new memory, it will find 
+//a free memory block in the freeLinkListHead
+
+//if a block not used any more, it will delete form the usedLinkListHead
+//and add to the freeLinkListHead, if two block are Adjacent, it will be
+//mergence to one continuous block.
+
+#include <stdio.h>
+#include <stdlib.h>
+
+//data structure used to store memory block information
+typedef struct _memBlcokNode
+{   
+	char *base;				//block start address
+	int len;					//block length
+	struct _memBlcokNode *next;		//next block address
+}memBlockNode;
+
+//the total memory size
+#define freeMemSize  (1024)		
+
+//limit allocate size per time
+#define maxAllocMemSizePerTime  50
+
+//total memory start address, for calculate the index of the byte array. 
+char *memBaseAddr=NULL;
+//illustrate the memory allocated state
+char memMap[freeMemSize];  // 'U' for used , '.' for free
+
+//free memory block
+memBlockNode *freeLinkListHead=NULL;
+
+//allcated memory block 
+memBlockNode *usedLinkListHead=NULL;
+
+//allocate freeMemSize memory bytes as the virtual machine memory
+void initMemBlock(void);
+
+//allocate size bytes from the virtual machine memory
+void allocMem(int size);
+
+//for simple, release the node ‘index' of the link list, free the memory
+void freeMem(int index);
+
+//linklist base operation, add, delete, equal
+void addNodeToList(memBlockNode** list,memBlockNode *newNode);
+void delNodeFrmList(memBlockNode** list,memBlockNode *newNode);
+int equalNode(memBlockNode *n1,memBlockNode*n2);
+
+//display the virtual machine memory allocated result
+void showBitmap(void);
+
+//free all memmory;
+void freeAllMem();
+
+//sort the linklist
+void BubbleSort(memBlockNode *head);
+
+/*---------------------------------------------------------------------------*/
+void freeAllMem()
+{
+	memBlockNode* p=freeLinkListHead;
+	while(p!=NULL)
+	{
+		memBlockNode *t=p->next;
+		free(p);
+		p=t;
+	}
+	p=usedLinkListHead;
+	while(p!=NULL)
+	{
+		memBlockNode *t=p->next;
+		free(p);
+		p=t;
+	}
+	return ;
+
+}
+/*---------------------------------------------------------------------------*/
+
+void BubbleSort(memBlockNode *head)
+{
+	memBlockNode *cur,*tail;
+	cur=head;
+	tail=NULL; 
+	if(cur==NULL||cur->next==NULL)
+	{
+		return;
+	}
+	while(cur!=tail)
+	{
+		while(cur->next!=tail)
+		{
+			if(cur->base>cur->next->base){
+				char * temp=cur->base;
+				cur->base=cur->next->base;
+				cur->next->base=temp;
+				int temp1=cur->len;
+				cur->len=cur->next->len;
+				cur->next->len=temp1;
+			}
+			cur=cur->next;
+		}
+		tail=cur;
+		cur=head;
+	}
+
+}
+/*---------------------------------------------------------------------------*/
+void showBitmap(void)
+{
+	int i=0;
+	memBlockNode *p=usedLinkListHead;
+
+	for(i=0;i<freeMemSize;i++)
+	{
+		memMap[i]='.';
+	}
+
+	while(p!=NULL)
+	{
+		for(i=0;i<p->len;i++)
+		{
+			memMap[p->base-memBaseAddr+i]='U';
+			//printf("%d",p->base-memBaseAddr+i);
+		}
+		p=p->next;
+	}
+	printf("\nMemory allocate bitmap is:\n");
+	for(i=0;i<freeMemSize;i++)
+	{
+		printf("%c",memMap[i]);
+
+	}
+	printf("\n");
+
+}
+/*---------------------------------------------------------------------------*/
+
+int equalNode(memBlockNode *n1,memBlockNode*n2)
+{
+	if(n1->base==n2->base &&n1->len==n2->len)
+		return 1;
+	else
+		return 0;
+}
+/*---------------------------------------------------------------------------*/
+void delNodeFrmList(memBlockNode** list,memBlockNode *node)
+{
+	memBlockNode *pre;
+
+	if(*list==NULL)
+		return ;
+	//if the first node is the delete node
+	if(equalNode(node,*list)==1)
+	{
+		*list=(*list)->next;    	
+		free(node);
+		return ;
+	}
+
+	pre=*list;
+
+	while(pre->next!=NULL)
+	{    	
+		if(equalNode(pre->next,node)==1)
+			break;
+		pre=pre->next;
+	}
+	if(pre==NULL)
+		return ;
+	else
+	{
+		pre->next=node->next;
+		free(node);
+	}
+
+}
+/*---------------------------------------------------------------------------*/
+//Add the node to the  memory linklist
+void addNodeToList(memBlockNode** list,memBlockNode *newNode)
+{
+
+	if(*list==NULL)
+		*list=newNode;
+	else
+	{
+		memBlockNode *p=*list;
+		while(p->next!=NULL)
+		{
+			p=p->next;
+		}
+		p->next=newNode;
+	}
+}
+/*---------------------------------------------------------------------------*/
+void freeMem(int index)
+{
+	int i=0;
+	memBlockNode* p=usedLinkListHead;
+
+	while(p!=NULL)
+	{
+		if(i==index)
+			break;
+		i++;		
+		p=p->next ;
+	}
+	if(p==NULL)
+		return ;
+	else
+	{
+		memBlockNode *p1=freeLinkListHead;
+		printf("Free %d bytes memory \n",p->len);
+		while(p1!=NULL)
+		{
+			if((p1->base+p1->len)==p->base)
+			{
+				p1->len=p1->len+p->len;
+				delNodeFrmList(&usedLinkListHead,p);
+				return ;
+			}
+			p1=p1->next;
+		}
+
+		memBlockNode * tmp= (memBlockNode *)malloc(sizeof(memBlockNode));
+		if(tmp==NULL)
+			exit(1);
+		tmp->base =p->base;
+		tmp->len =p->len;
+		tmp->next=NULL;
+
+		addNodeToList(&freeLinkListHead,tmp);
+		delNodeFrmList(&usedLinkListHead,p);
+		BubbleSort(freeLinkListHead);
+	}
+
+}
+/*---------------------------------------------------------------------------*/
+void allocMem(int size)
+{
+	memBlockNode *pNode=freeLinkListHead;
+	memBlockNode *pNewNode=NULL;
+
+	if(size>maxAllocMemSizePerTime)
+		size=maxAllocMemSizePerTime;
+
+	//find the first big enough free memory in list, you can use other algorithm
+	while(pNode!=NULL)
+	{
+		if(pNode->len >= size)
+			break;
+		pNode=pNode->next;
+	}
+
+	//if no memory, exit program
+	if(pNode==NULL)
+	{
+		printf("there is no enough memory ,wants allocate %d bytes\n",size);
+		//showBitmap();
+		//exit(1) ;
+		return ;
+	}
+
+	//create a new node in the used memory linklist
+	pNewNode= (memBlockNode*)malloc(sizeof(memBlockNode));
+	if(pNewNode==NULL)
+	{
+		printf("allocate memory failure\n");
+		exit(1);
+	}
+
+	pNewNode->base=pNode->base;
+	pNewNode->len=size;
+	pNewNode->next=NULL;
+
+	addNodeToList(&usedLinkListHead,pNewNode);
+
+	if(pNode->len==size)
+	{
+		delNodeFrmList(&freeLinkListHead,pNode);
+	}
+	else  //update free memory info for the current node
+	{
+		pNode->base= pNode->base +size ;
+		pNode->len=pNode->len-size;
+	}
+	printf("Allocate %d byte memory\n",size);
+}
+
+/*---------------------------------------------------------------------------*/
+void initMemBlock(void)
+{
+	memBlockNode * node= (memBlockNode*)malloc(sizeof(memBlockNode));
+	if(node==NULL)
+	{
+		printf("allocate memory failure\n");
+		exit(1);
+	}
+
+	node->base =(char*)malloc(freeMemSize);
+	memBaseAddr=node->base;
+	if(node->base==NULL)
+	{
+		printf("allocate memory failure\n");
+		exit(1);
+	}
+	node->len=freeMemSize;
+	node->next=NULL;
+	freeLinkListHead=node;
+}
+/*---------------------------------------------------------------------------*/
+int main()
+{
+	int count=0,i;
+	initMemBlock();
+	printf("Before allocate memory\n");
+	showBitmap();
+
+	for(i=0;i<100;i++)
+	{
+		int size=rand()%maxAllocMemSizePerTime+1;
+		allocMem(size);
+		count++;
+		showBitmap();
+		if(count>5)
+		{
+			int index=rand()%count-1;
+			freeMem(index);			
+		}
+		usleep(300);
+	}
+	freeAllMem();
+	free(memBaseAddr);
+	return 0;
+}
+
+
+---------------------------------------------------------------------------------------------------------
+MODIFIED:
+
+//Basic method used for Continuous memory allocation
+//allocate freeMemSize(constant) Bytes in memory, use this memory
+//region as the virtual machine memory;
+//Use two link list to store the free memory block and the allocated
+//memory block
+//every time when a process need allocate new memory, it will find
+//a free memory block in the freeLinkListHead
+//if a block not used any more, it will delete form the usedLinkListHead
+//and add to the freeLinkListHead, if two block are Adjacent, it will be
+//mergence to one continuous block.
+#include <stdio.h>
+#include <stdlib.h>
+
+//data structure used to store memory block information
+typedef struct _memBlcokNode{  
+  char *base;                                            //block start addr
+  int len;                                                  //block len
+  struct _memBlcokNode *next;                //next block address
+}memBlockNode;
+
+//the total memory size
+#define freeMemSize  (1024)               
+
+//limit allocate size per time
+#define maxAllocMemSizePerTime  50
+
+//total memory start address, for calculate the index of the byte array.
+char *memBaseAddr=NULL;
+
+//illustrate the memory allocated state
+char memMap[freeMemSize];  // ‘U' for used , ‘.' for free
+
+//free memory block
+memBlockNode *freeLinkListHead=NULL;
+
+//allcated memory block
+memBlockNode *usedLinkListHead=NULL;
+
+//allocate freeMemSize memory bytes as the virtual machine memory
+void initMemBlock(void);
+
+//allocate size bytes from the virtual machine memory
+void allocMem(int size);
+
+//for simple, release the node ‘index' of the link list, free the memory
+void freeMem(int index);
+
+//linklist base operation, add, delete, equal
+void addNodeToList(memBlockNode** list,memBlockNode *newNode);
+void delNodeFrmList(memBlockNode** list,memBlockNode *newNode);
+int equalNode(memBlockNode *n1,memBlockNode*n2);
+
+//display the virtual machine memory allocated result
+void showBitmap(void);
+
+//free all memmory;
+void freeAllMem();
+
+//sort the linklist
+void BubbleSort(memBlockNode *head);
+
+/*—————————————————————————*/
+void freeAllMem(){
+  memBlockNode* p=freeLinkListHead;
+  while(p!=NULL){
+    memBlockNode *t=p->next;
+    free(p);
+    p=t;
+  }
+  p=usedLinkListHead;
+  while(p!=NULL){
+    memBlockNode *t=p->next;
+    free(p);
+    p=t;
+  }
+  return ;
+}
+/*—————————————————————————*/
+void BubbleSort(memBlockNode *head){
+  memBlockNode *cur,*tail;
+  cur=head;
+  tail=NULL;
+  if(cur==NULL||cur->next==NULL){
+    return;
+  }
+  while(cur!=tail){
+    while(cur->next!=tail){
+      if(cur->base>cur->next->base){
+        char * temp=cur->base;
+        cur->base=cur->next->base;
+        cur->next->base=temp;
+        int temp1=cur->len;
+        cur->len=cur->next->len;
+        cur->next->len=temp1;
+      }
+      cur=cur->next;
+    }
+    tail=cur;
+    cur=head;
+  }
+}
+/*—————————————————————————*/
+void showBitmap(void){
+  int i=0;
+  memBlockNode *p=usedLinkListHead;
+  for(i=0;i<freeMemSize;i++){
+    memMap[i]='.';
+  }
+  while(p!=NULL){
+    for(i=0;i<p->len;i++){
+      memMap[p->base-memBaseAddr+i]='U';
+      //printf("%d",p->base-memBaseAddr+i);
+    }
+    p=p->next;
+  }
+  printf("\nMemory allocate bitmap is:\n");
+    for(i=0;i<freeMemSize;i++){
+      printf("%c",memMap[i]);
+    }
+    printf("\n");
+}
+/*—————————————————————————*/
+int equalNode(memBlockNode *n1,memBlockNode*n2){
+  if(n1->base==n2->base &&n1->len==n2->len)
+    return 1;
+  else
+    return 0;
+}
+/*—————————————————————————*/
+void delNodeFrmList(memBlockNode** list,memBlockNode *node){
+  memBlockNode *pre;
+  if(*list==NULL)
+    return ;
+  //if the first node is the delete node
+  if(equalNode(node,*list)==1){
+    *list=(*list)->next;         
+    free(node);
+    return ;
+  }
+  pre=*list;
+  while(pre->next!=NULL)
+  {          
+    if(equalNode(pre->next,node)==1)
+      break;
+    pre=pre->next;
+  }
+  if(pre==NULL)
+    return ;
+  else{
+    pre->next=node->next;
+    free(node);
+  }
+}
+/*—————————————————————————*/
+//Add the node to the  memory linklist
+void addNodeToList(memBlockNode** list,memBlockNode *newNode){
+  if(*list==NULL)
+    *list=newNode;
+  else{
+    memBlockNode *p=*list;
+    while(p->next!=NULL){
+      p=p->next;
+    }
+    p->next=newNode;
+  }
+}
+/*—————————————————————————*/
+void freeMem(int index){
+  int i=0;
+  memBlockNode* p=usedLinkListHead;
+  while(p!=NULL){
+    if(i==index)
+      break;
+    i++;                 
+    p=p->next ;
+  }
+  if(p==NULL)
+    return ;
+  else{
+    memBlockNode *p1=freeLinkListHead;
+    printf("Free %d bytes memory \n",p->len);
+    while(p1!=NULL){
+      if((p1->base+p1->len)==p->base){
+        p1->len=p1->len+p->len;
+        delNodeFrmList(&usedLinkListHead,p);
+        return ;
+      }
+      p1=p1->next;
+    }
+    memBlockNode * tmp= (memBlockNode *)malloc(sizeof(memBlockNode));
+    if(tmp==NULL)
+      exit(1);
+    tmp->base =p->base;
+    tmp->len =p->len;
+    tmp->next=NULL;
+    addNodeToList(&freeLinkListHead,tmp);
+    delNodeFrmList(&usedLinkListHead,p);
+    BubbleSort(freeLinkListHead);
+  }
+}
+/*—————————————————————————*/
+void allocMem(int size){
+  //MODIFICATION
+  int temp = 0,lowest= 9999;
+  //
+  memBlockNode *pNode=freeLinkListHead;
+  memBlockNode *pNewNode=NULL;
+  memBlockNode *ptemps = NULL;
+  if(size>maxAllocMemSizePerTime)
+    size=maxAllocMemSizePerTime;
+  //find the first big enough free memory in list, you can use other algorithm
+  while(pNode!=NULL){
+    if(pNode->len >= size){
+      //MODIFICATION
+      temp=pNode->len;
+      if (lowest>temp){
+        lowest = temp;
+ pTemps=pNode;
+      }
+    }//
+      //break;
+    pNode=pNode->next; 
+  }pNode=pTemps;
+  //if no memory, exit program
+  if(pNode==NULL)
+  {
+    printf("there is no enough memory ,wants allocate %d bytes\n",size);
+    //showBitmap();
+    //exit(1) ;
+    return ;
+  }
+  //create a new node in the used memory linklist
+  pNewNode= (memBlockNode*)malloc(sizeof(memBlockNode));
+  if(pNewNode==NULL)
+  {
+    printf("allocate memory failure\n");
+    exit(1);
+  }
+  pNewNode->base=pNode->base;
+  pNewNode->len=size;
+  pNewNode->next=NULL;
+  addNodeToList(&usedLinkListHead,pNewNode);
+  if(pNode->len==size)
+  {
+    delNodeFrmList(&freeLinkListHead,pNode);
+  }
+  else  //update free memory info for the current node
+  {
+    pNode->base= pNode->base +size ;
+    pNode->len=pNode->len-size;
+  }
+  printf("Allocate %d byte memory\n",size);
+}
+/*—————————————————————————*/
+void initMemBlock(void){
+  memBlockNode * node= (memBlockNode*)malloc(sizeof(memBlockNode));
+  if(node==NULL)
+  {
+    printf("allocate memory failure\n");
+    exit(1);
+  }
+  node->base =(char*)malloc(freeMemSize);
+  memBaseAddr=node->base;
+  if(node->base==NULL)
+  {
+    printf("allocate memory failure\n");
+    exit(1);
+  }
+  node->len=freeMemSize;
+  node->next=NULL;
+  freeLinkListHead=node;
+}
+/*—————————————————————————*/
+int main(){
+  int count=0,i;
+  initMemBlock();
+  printf("Before allocate memory\n");
+  showBitmap();
+  for(i=0;i<100;i++){
+    int size=rand()%maxAllocMemSizePerTime+1;
+    allocMem(size);
+    count++;
+    showBitmap();
+    if(count>5)
+    {
+      int index=rand()%count-1;
+      freeMem(index);                       
+    }
+    usleep(300);
+  }
+  freeAllMem();
+  free(memBaseAddr);
+  return 0;
+}
+
+
+---------------------------------------------------------------------------------------------------------
+LAB C
+---------------------------------------------------------------------------------------------------------
+
+ORIGINAL:
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+//#include <io.h>
+
+//define allocate base unit SECTOR size, pay attention,actual is 252, because the last four bytes are used to index the next sector number.
+#define SECTOR_SIZE 256
+
+//for simple reasion, our file system only can store 256 files
+#define MAX_FILES 256
+
+#define DISK_SIZE 1024*1024*4   //4M disk space
+
+char sectorFree[1024*1024*4/256]={0};
+char virtualFileName[256]="virtualDisk";
+void createVirtualDisk(void);
+typedef struct _fileItem
+{
+   char fileName[8];
+   int len;
+   int start;
+}FILEITEM;
+FILEITEM files[256];
+
+void writeFileItem()
+{
+	FILE *fp;
+	fp =fopen(virtualFileName,"w");
+	if(fp==NULL)
+	{
+		printf("open vritual disk failure\n");
+		return;
+	}
+	fwrite(&files[0],sizeof(FILEITEM),256,fp);
+	fclose(fp);
+}
+
+void readFileItem()
+{
+	FILE *fp;
+	fp =fopen(virtualFileName,"r");
+	if(fp==NULL)
+	{
+		printf("open vritual disk failure\n");
+		return;
+	}
+	fread(&files[0],sizeof(FILEITEM),256,fp);
+	fclose(fp);
+
+}
+
+void writeSectorIdleState()
+{
+	FILE *fp;
+	fp =fopen(virtualFileName,"w");
+	if(fp==NULL)
+	{
+		printf("open vritual disk failure\n");
+		return;
+	}
+	fseek(fp,256*8,SEEK_SET);
+	fwrite(&sectorFree[0],16384,1,fp);
+	fclose(fp);
+}
+
+void readSectorIdleState()
+{
+	FILE *fp;
+	fp =fopen(virtualFileName,"r");
+	if(fp==NULL)
+	{
+		printf("open vritual disk failure\n");
+		return;
+	}
+	fseek(fp,256*8,SEEK_SET);
+	fread(&sectorFree[0],16384,1,fp);
+	fclose(fp);
+}
+
+void openDisk()
+{
+	
+	if(access(virtualFileName,0)==-1)
+	{
+		createVirtualDisk();
+		return ;
+	}
+	
+	readSectorIdleState();
+	readFileItem();	
+}
+
+void readSector(int secIndex,char *buf)
+{
+	FILE *fp;
+	fp =fopen(virtualFileName,"r");
+	if(fp==NULL)
+	{
+		printf("open vritual disk failure\n");
+		return;
+	}
+	fseek(fp,secIndex*256,SEEK_SET);
+	fread(buf,256,1,fp);
+	fclose(fp);
+}
+
+void writeSector(int secIndex,char *buf)
+{
+	FILE *fp;
+	fp =fopen(virtualFileName,"w");
+	if(fp==NULL)
+	{
+		printf("open vritual disk failure\n");
+		return;
+	}
+	fseek(fp,secIndex*256,SEEK_SET);
+	fwrite(buf,256,1,fp);
+	fclose(fp);
+}
+
+int findFreeSector()
+{
+	int index=0;
+	int i;
+	for( i=72;i<16384;i++)
+	{
+		if(sectorFree[i]==0)
+		{
+			index =i;
+			sectorFree[i]=1;
+			break;
+		}
+	}
+	if(index==0)
+		printf("no more disk space \n");	
+//	writeSectorIdleState();
+	return index;
+}
+void resetFreeSecotr(int index)
+{	
+	
+	sectorFree[index]=0;
+//	writeSectorIdleState();
+	
+}
+
+
+void listFiles()
+{
+	int i;
+	printf("Files are:\n");
+	for(i=0;i<256;i++)
+	{
+		if(strcmp(files[i].fileName,"")!=0)
+			printf("%s\tlengh is:%d\tstore at%d sector\n",files[i].fileName,files[i].len,files[i].start);
+	}
+}
+
+
+
+int getFileSize(const char *path)
+{
+	int filesize = -1;	
+	struct stat statbuff;
+	if(stat(path, &statbuff) < 0){
+		return filesize;
+	}else{
+		filesize = statbuff.st_size;
+	}
+	return filesize;
+}
+int findFreeFileItem()
+{
+	int index=0;
+	int i;
+	for(i=0;i<256;i++)
+	{
+		if(strcmp(files[i].fileName,"")==0)
+		{
+			printf("%s\n",files[i].fileName);
+			index =i;
+			break;
+		}
+		
+	}
+	if(i>255) 
+		printf("cannot add more file to virtul disk\n");
+	return index;
+	
+
+}
+void addFileToVirtualDisk()
+{
+	FILE *fp;
+	unsigned int len;
+	int sectors=0;
+	char filename[256];
+	int i;
+	int freeitem;
+	int start=0;
+
+	printf("input the exits filename\n");
+	fflush(stdin);
+	scanf("%s",filename);
+	if(access(filename,0)!=0)
+	{
+		printf("cannot find the file\n");
+		return;
+	}
+	len=getFileSize(filename);
+
+	if(len<=0)
+		printf("The file is empty\n");
+
+	sectors=len/252;
+	if(len%252)
+		sectors+=1;
+
+	fp=fopen(filename,"r");
+	if(fp==NULL)
+	{
+		printf("open file error\n");
+		return ;
+	}
+	for(i=0;i<sectors;i++)
+	{
+		int f1;
+		char buf[256]={0};		
+
+		fread(buf,252,1,fp);
+		f1=findFreeSector();
+
+		*((int*)&buf[252])=f1;
+
+		writeSector(f1,buf);	
+
+		if(i==0)
+			start=f1;
+	}
+	fclose(fp);
+	
+	freeitem=findFreeFileItem();
+	
+	strcpy(files[freeitem].fileName,filename);
+	files[freeitem].len=len;
+	files[freeitem].start=start;
+	
+	writeFileItem();	
+}
+
+
+
+void createVirtualDisk(void)
+{
+//create a file to simulate the virtual disk, the disk size is 4mb
+	char  *ch;
+
+	int i;
+	FILEITEM t;
+	FILE * fp ;
+
+	ch=(char*)malloc(1024*1024*4);
+	if(ch==NULL)
+	{
+		printf("error");
+		return;
+	}
+	strcpy(t.fileName,"");
+	t.len=0;
+	t.start=0;
+	fp =fopen(virtualFileName,"w+");
+	if(fp==NULL)
+	{
+		printf("create vritual disk failure\n");
+		return;
+	}
+
+	fwrite(ch,1024*1024*4,1,fp);
+//write 256 file item at the begin of the virtual disk
+	fseek(fp,0,SEEK_SET);
+
+	for(i=0;i<256;i++)
+	{
+		strcpy(files[i].fileName,"");
+		files[i].len=0;
+		files[i].start=0;
+	}
+	fwrite(&files[0],sizeof(FILEITEM),256,fp);
+
+//write sectorFree information after the file item
+//first 72 secotrs are used by fileitem and sector idle state
+	for(i=0;i<72;i++)
+	{
+		sectorFree[i]=1;
+	}
+	fwrite(&sectorFree[0],16384,1,fp);	
+	fclose(fp);
+}
+int showMenu()
+{
+	char cmd[256];
+	
+	printf("\n--------------Virtual Disk, a simple file system--------------\n");
+	printf("Copy a file into the disk by type COPY\n");
+ 	printf("Terminate program by type EXIT\n");
+ 	printf("List files in the disk by type LIST\n");
+	printf("VirtualDisk>");
+	fflush(stdin);
+	scanf("%s",cmd);
+	if(strcmp(cmd,"COPY")==0)
+		return 0;
+	if(strcmp(cmd,"LIST")==0)
+		return 1;
+	if(strcmp(cmd,"EXIT")==0)
+		return 2;
+
+	return -1;
+
+}
+
+int main()
+{
+	openDisk();
+	do{
+		int func;
+		func=showMenu();
+		switch(func)
+{
+case 0:
+addFileToVirtualDisk();
+break;
+case 1:
+listFiles();
+break;
+case 2:
+break;
+default:
+break;
+}
+	if(func==2) 
+		break;
+
+
+	  }while(1);
+	
+	
+	addFileToVirtualDisk();
+	
+	return 0;
+}
+
+---------------------------------------------------------------------------------------------------------
+MODIFIED:
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+//#include <io.h>
+
+//define allocate base unit SECTOR size, pay attention,actual is 252, because the last four bytes are used to index the next sector number.
+#define SECTOR_SIZE 256
+
+//for simple reasion, our file system only can store 256 files
+#define MAX_FILES 256
+
+#define DISK_SIZE 1024*1024*4   //4M disk space
+
+char sectorFree[1024*1024*4/256]={0};
+char virtualFileName[256]="virtualDisk";
+void createVirtualDisk(void);
+typedef struct _fileItem{
+  char fileName[8];
+  int len;
+  int start;
+}FILEITEM;
+FILEITEM files[256];
+
+void writeFileItem()
+{
+	FILE *fp;
+	fp =fopen(virtualFileName,"w");
+	if(fp==NULL)
+	{
+		printf("open vritual disk failure\n");
+		return;
+	}
+	fwrite(&files[0],sizeof(FILEITEM),256,fp);
+	fclose(fp);
+}
+
+void readFileItem(){
+	FILE *fp;
+	fp =fopen(virtualFileName,"r");
+	if(fp==NULL)
+	{
+		printf("open vritual disk failure\n");
+		return;
+	}
+	fread(&files[0],sizeof(FILEITEM),256,fp);
+	fclose(fp);
+}
+
+void writeSectorIdleState(){
+	FILE *fp;
+	fp =fopen(virtualFileName,"w");
+	if(fp==NULL)
+	{
+		printf("open vritual disk failure\n");
+		return;
+	}
+	fseek(fp,256*8,SEEK_SET);
+	fwrite(&sectorFree[0],16384,1,fp);
+	fclose(fp);
+}
+
+void readSectorIdleState(){
+	FILE *fp;
+	fp =fopen(virtualFileName,"r");
+	if(fp==NULL)
+	{
+		printf("open vritual disk failure\n");
+		return;
+	}
+	fseek(fp,256*8,SEEK_SET);
+	fread(&sectorFree[0],16384,1,fp);
+	fclose(fp);
+}
+
+void openDisk(){
+	if(access(virtualFileName,0)==-1)
+	{
+		createVirtualDisk();
+		return ;
+	}
+	readSectorIdleState();
+	readFileItem();	
+}
+
+void readSector(int secIndex,char *buf)
+{
+	FILE *fp;
+	fp =fopen(virtualFileName,"r");
+	if(fp==NULL)
+	{
+		printf("open vritual disk failure\n");
+		return;
+	}
+	fseek(fp,secIndex*256,SEEK_SET);
+	fread(buf,256,1,fp);
+	fclose(fp);
+}
+
+void writeSector(int secIndex,char *buf){
+	FILE *fp;
+	fp =fopen(virtualFileName,"w");
+	if(fp==NULL)
+	{
+		printf("open vritual disk failure\n");
+		return;
+	}
+	fseek(fp,secIndex*256,SEEK_SET);
+	fwrite(buf,256,1,fp);
+	fclose(fp);
+}
+
+int findFreeSector(){
+	int index=0;
+	int i;
+	for( i=72;i<16384;i++)
+	{
+		if(sectorFree[i]==0)
+		{
+			index =i;
+			sectorFree[i]=1;
+			break;
+		}
+	}
+	if(index==0)
+		printf("no more disk space \n");	
+//	writeSectorIdleState();
+	return index;
+}
+void resetFreeSector(int index){		
+	sectorFree[index]=0;
+//	writeSectorIdleState();
+}
+
+void listFiles(){
+	int i;
+	printf("Files are:\n");
+	for(i=0;i<256;i++)
+	{
+		if(strcmp(files[i].fileName,"")!=0)
+			printf("%s\tlengh is:%d\tstore at%d sector\n",files[i].fileName,files[i].len,files[i].start);
+	}
+}
+
+int getFileSize(const char *path){
+	int filesize = -1;	
+	struct stat statbuff;
+	if(stat(path, &statbuff) < 0){
+		return filesize;
+	}else{
+		filesize = statbuff.st_size;
+	}
+	return filesize;
+}
+
+int findFreeFileItem(){
+	int index=0;
+	int i;
+	for(i=0;i<256;i++){
+		if(strcmp(files[i].fileName,"")==0)
+		{
+			printf("%s\n",files[i].fileName);
+			index =i;
+			break;
+		}
+	}
+	if(i>255) 
+		printf("cannot add more file to virtul disk\n");
+	return index;
+}
+
+void addFileToVirtualDisk()
+{
+	FILE *fp;
+	unsigned int len;
+	int sectors=0;
+	char filename[256];
+	int i;
+	int freeitem;
+	int start=0;
+	printf("input the exits filename\n");
+	fflush(stdin);
+	scanf("%s",filename);
+	if(access(filename,0)!=0){
+		printf("cannot find the file\n");
+		return;
+	}
+	len=getFileSize(filename);
+	if(len<=0)
+		printf("The file is empty\n");
+	sectors=len/252;
+	if(len%252)
+		sectors+=1;
+	fp=fopen(filename,"r");
+	if(fp==NULL){
+		printf("open file error\n");
+		return ;
+	} 
+	for(i=0;i<sectors;i++){
+		int f1;
+		char buf[256]={0};		
+		fread(buf,252,1,fp);
+		f1=findFreeSector();
+		*((int*)&buf[252])=f1;
+		writeSector(f1,buf);	
+		if(i==0)
+			start=f1;
+	}
+	fclose(fp);
+	freeitem=findFreeFileItem();
+	strcpy(files[freeitem].fileName,filename);
+	files[freeitem].len=len;
+	files[freeitem].start=start;
+	writeFileItem();	
+}
+
+void createVirtualDisk(void)
+{
+//create a file to simulate the virtual disk, the disk size is 4mb
+	char  *ch;
+	int i;
+	FILEITEM t;
+	FILE * fp ;
+	ch=(char*)malloc(1024*1024*4);
+	if(ch==NULL)
+	{
+		printf("error");
+		return;
+	}
+	strcpy(t.fileName,"");
+	t.len=0;
+	t.start=0;
+	fp =fopen(virtualFileName,"w+");
+	if(fp==NULL)
+	{
+		printf("create vritual disk failure\n");
+		return;
+	}
+	fwrite(ch,1024*1024*4,1,fp);
+//write 256 file item at the begin of the virtual disk
+	fseek(fp,0,SEEK_SET);
+	for(i=0;i<256;i++)
+	{
+		strcpy(files[i].fileName,"");
+		files[i].len=0;
+		files[i].start=0;
+	}
+	fwrite(&files[0],sizeof(FILEITEM),256,fp);
+//write sectorFree information after the file item
+//first 72 secotrs are used by fileitem and sector idle state
+	for(i=0;i<72;i++)
+	{
+		sectorFree[i]=1;
+	}
+	fwrite(&sectorFree[0],16384,1,fp);	
+	fclose(fp);
+}
+int showMenu()
+{
+	char cmd[256];
+	printf("\n--------------Virtual Disk, a simple file system--------------\n");
+	printf("Copy a file into the disk by type COPY\n");
+ 	printf("Terminate program by type EXIT\n");
+ 	printf("List files in the disk by type LIST\n");
+	 printf("Delete files in the disk by type DELETE\n");//MODIFIED
+	printf("VirtualDisk>");
+	fflush(stdin);
+	scanf("%s",cmd);
+	if(strcmp(cmd,"COPY")==0)
+		return 0;
+	if(strcmp(cmd,"LIST")==0)
+		return 1;
+	if(strcmp(cmd,"EXIT")==0)
+		return 2;
+	if(strcmp(cmd,"DELETE")==0) //MODIFIED
+		return 3;
+	return -1;
+}
+//MODIFIED
+void deleteFile(){
+	FILE *fp;
+	char fname[8];
+	printf("\n\n Remove a file from the disk :\n");
+	printf("----------------------------------\n"); 
+	printf(" Input the name of file to delete : ");
+	scanf("%s",fname);
+	int del = remove(fname);
+	if (!del)
+      printf("The file is Deleted successfully");
+	else
+      printf("the file is not Deleted");
+}//MODIFIED
+int main(){
+	openDisk();
+	do{
+		int func;
+		func=showMenu();
+		switch(func)
+{
+case 0:
+addFileToVirtualDisk();
+break;
+case 1:
+listFiles();
+break;
+case 2:
+break;
+case 3:
+deleteFile();
+break;
+default:
+break;
+}
+	if(func==2) 
+		break;
+	  }while(1);
+	addFileToVirtualDisk();
+	return 0;
+}
+
+
